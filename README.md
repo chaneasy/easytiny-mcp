@@ -36,8 +36,32 @@ pnpm bench img bench/fixtures [--effort fast|balanced|max] [-v]   # 只输出统
 pnpm test
 ```
 
-在 Claude Code 中接入：
+## 接入
+
+支持 macOS（Apple Silicon / Intel）与 Windows x64，需要 Node.js ≥ 20。编码器随平台包自动安装，无需额外依赖。
 
 ```bash
-claude mcp add easytiny -- node --import tsx /path/to/easytiny-mcp/src/index.ts
+# Claude Code：所有项目可用；只想在当前项目用就去掉 --scope user
+claude mcp add --scope user easytiny -- npx -y easytiny-mcp
 ```
+
+其他客户端（Cursor 等）的 JSON 配置：
+
+```json
+{ "mcpServers": { "easytiny": { "command": "npx", "args": ["-y", "easytiny-mcp"] } } }
+```
+
+本地开发版：先 `pnpm build`，再把命令换成 `node /path/to/easytiny-mcp/dist/index.js`。
+
+## 发布
+
+推送 `v*` tag 后，GitHub Actions 会在各平台编译编码器、跑测试，并发布主包 `easytiny-mcp` 与平台包 `easytiny-mcp-<平台>`：
+
+```bash
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+npm 认证使用 Trusted Publishing（OIDC），无需长期 token：
+
+1. 首次发布前包还不存在，需要在 npm 生成一个可发布的 Granular Access Token，填入仓库 Secrets 的 `NPM_TOKEN`。
+2. 首次发布成功后，在 npmjs.com 上为 4 个包分别添加 Trusted Publisher（仓库 `chaneasy/easytiny-mcp`，工作流 `release.yml`，环境 `npm`），然后删除 `NPM_TOKEN`。

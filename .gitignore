@@ -3,3 +3,6 @@ dist/
 bench/
 .DS_Store
 vendor/
+npm/*/bin/
+npm/*/licenses/
+npm/*/THIRD_PARTY_NOTICES.md

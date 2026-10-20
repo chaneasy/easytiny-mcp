@@ -1,0 +1,112 @@
+# 推送到 main 或提 PR：各平台编译编码器并跑测试
+# 推送 v* tag：额外发布 npm 包（各平台包 + 主包）
+name: release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: darwin-arm64, os: macos-15 }
+          - { platform: darwin-x64, os: macos-15-intel }
+          - { platform: win32-x64, os: windows-2025 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: 编译编码器（macOS）
+        if: runner.os == 'macOS'
+        run: |
+          [[ $(uname -m) == x86_64 ]] && brew install nasm
+          scripts/build-bins.sh all npm/${{ matrix.platform }}
+
+      - uses: msys2/setup-msys2@v2
+        if: runner.os == 'Windows'
+        with:
+          msystem: UCRT64
+          path-type: inherit
+          install: >-
+            git make diffutils curl unzip perl
+            mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-nasm
+
+      # Rust 部分用 MSVC 工具链，在 Git Bash 中编译；C/C++ 部分在 MSYS2 中用 MinGW 编译
+      - name: 编译编码器（Windows，Rust）
+        if: runner.os == 'Windows'
+        shell: bash
+        run: scripts/build-bins.sh cargo npm/${{ matrix.platform }}
+
+      - name: 编译编码器（Windows，C/C++）
+        if: runner.os == 'Windows'
+        shell: msys2 {0}
+        run: scripts/build-bins.sh native npm/${{ matrix.platform }}
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+        env:
+          EASYTINY_BIN_DIR: ${{ github.workspace }}/npm/${{ matrix.platform }}/bin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            npm/${{ matrix.platform }}/bin
+            npm/${{ matrix.platform }}/licenses
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # Trusted Publishing 与 provenance
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      # Trusted Publishing 需要 npm ≥ 11.5.1，Node 24 自带
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: npm
+
+      - name: 同步版本号并构建
+        run: |
+          chmod +x npm/*/bin/*
+          pnpm release ${GITHUB_REF_NAME}
+          pnpm build
+
+      # 先发平台包再发主包；已发布的版本跳过，失败后可直接重跑
+      # 配置了 Trusted Publishing 后无需 NPM_TOKEN；首次发布（包还不存在）时需要
+      - name: 发布
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for dir in npm/*/ .; do
+            name=$(node -p "require('./$dir/package.json').name")
+            version=$(node -p "require('./$dir/package.json').version")
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "跳过已发布的 $name@$version"
+            else
+              (cd "$dir" && npm publish --provenance --access public)
+            fi
+          done

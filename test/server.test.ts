@@ -17,8 +17,8 @@ beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'easytiny-test-'))
   for (const f of ['bg.png', 'panel.png', 'icons/icon-1.png']) await cp(join('img', f), join(dir, f.replace('icons/', '')))
   client = new Client({ name: 'test', version: '0' })
-  // 隔离已压缩记录，避免影响本机缓存
-  const env = { ...process.env, HOME: dir } as Record<string, string>
+  // 隔离已压缩记录，避免影响本机缓存（Windows 用 USERPROFILE）
+  const env = { ...process.env, HOME: dir, USERPROFILE: dir } as Record<string, string>
   await client.connect(new StdioClientTransport({ command: process.execPath, args: ['--import', 'tsx', 'src/index.ts'], env }))
 }, 60_000)
 

@@ -1,0 +1,21 @@
+{
+  "name": "easytiny-mcp-darwin-x64",
+  "version": "0.0.0",
+  "description": "easytiny-mcp 的 macOS Intel 编码器",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chaneasy/easytiny-mcp.git"
+  },
+  "license": "SEE LICENSE IN THIRD_PARTY_NOTICES.md",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin",
+    "licenses",
+    "THIRD_PARTY_NOTICES.md"
+  ]
+}

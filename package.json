@@ -2,6 +2,21 @@
   "name": "easytiny-mcp",
   "version": "0.1.0",
   "description": "MCP server for visually lossless batch image compression",
+  "keywords": [
+    "mcp",
+    "image",
+    "compression",
+    "png",
+    "jpeg",
+    "webp",
+    "avif"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chaneasy/easytiny-mcp.git"
+  },
+  "homepage": "https://github.com/chaneasy/easytiny-mcp#readme",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "easytiny-mcp": "dist/index.js"
@@ -15,12 +30,13 @@
     "fixtures": "tsx scripts/fixtures.ts",
     "bench": "tsx scripts/bench.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "release": "tsx scripts/release.ts"
   },
   "engines": {
     "node": ">=20"
   },
-  "license": "MIT",
+  "packageManager": "pnpm@8.15.5",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
     "sharp": "^0.35.5",
