@@ -2,6 +2,9 @@ import { existsSync } from 'node:fs'
 import sharp from 'sharp'
 import { run, which } from './exec.js'
 
+// libvips 缓存会一直占用读过的文件，Windows 上会导致原图无法替换、临时文件无法删除
+sharp.cache(false)
+
 /** 解码为 sRGB PNG（自动校正方向）；有透明通道时合成到 bg 背景上 */
 async function toPng(file: string, out: string, page: number, density: number, bg?: string): Promise<string> {
   let img = sharp(file, { page, density, limitInputPixels: false }).rotate()

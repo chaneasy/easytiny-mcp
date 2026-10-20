@@ -47,7 +47,7 @@ export async function cancelPlan(id: string): Promise<boolean> {
   const plan = plans.get(id)
   if (!plan) return false
   plans.delete(id)
-  await rm(plan.dir, { recursive: true, force: true })
+  await rm(plan.dir, { recursive: true, force: true, maxRetries: 5 })
   return true
 }
 
