@@ -15,7 +15,7 @@ const call = async (name: string, args: Record<string, unknown>) => {
 
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'easytiny-test-'))
-  for (const f of ['bg.png', 'shop.png', 'music-on-1.png']) await cp(join('img', f), join(dir, f))
+  for (const f of ['bg.png', 'panel.png', 'icons/icon-1.png']) await cp(join('img', f), join(dir, f.replace('icons/', '')))
   client = new Client({ name: 'test', version: '0' })
   // 隔离已压缩记录，避免影响本机缓存
   const env = { ...process.env, HOME: dir } as Record<string, string>
@@ -31,7 +31,7 @@ test('预览不改动原图，确认后替换', async () => {
   const before = await readFile(join(dir, 'bg.png'))
   const preview = await call('prepare_compression', { paths: [dir] })
   const planId = preview.match(/plan_id: (\w+)/)![1]
-  expect(preview).toContain('music-on-1.png')
+  expect(preview).toContain('icon-1.png')
   expect(preview).toMatch(/小于 10KB/)
   expect(await readFile(join(dir, 'bg.png'))).toEqual(before)
 
@@ -45,8 +45,8 @@ test('预览不改动原图，确认后替换', async () => {
 }, 120_000)
 
 test('原图在预览后被改动则不替换', async () => {
-  await cp(join('img', 'bg2.png'), join(dir, 'bg2.png'))
-  const planId = (await call('prepare_compression', { paths: [join(dir, 'bg2.png')] })).match(/plan_id: (\w+)/)![1]
-  await cp(join('img', 'bg.png'), join(dir, 'bg2.png'))
+  await cp(join('img', 'illustration.png'), join(dir, 'illustration.png'))
+  const planId = (await call('prepare_compression', { paths: [join(dir, 'illustration.png')] })).match(/plan_id: (\w+)/)![1]
+  await cp(join('img', 'bg.png'), join(dir, 'illustration.png'))
   expect(await call('apply_compression', { plan_id: planId })).toContain('原图在预览后已变更')
 }, 120_000)

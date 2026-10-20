@@ -29,8 +29,9 @@
 
 ```bash
 pnpm install
-scripts/build-bins.sh      # 编译编码器到 vendor/bin（也可用 EASYTINY_BIN_DIR 指定目录）
-pnpm fixtures              # 从 img/ 生成其他格式的测试样例
+scripts/build-bins.sh         # 编译编码器到 vendor/bin（也可用 EASYTINY_BIN_DIR 指定目录）
+pnpm tsx scripts/gen-img.ts   # 重新生成 img/ 下的测试图片（已提交，一般无需运行）
+pnpm fixtures                 # 从 img/ 生成其他格式的测试样例
 pnpm bench img bench/fixtures [--effort fast|balanced|max] [-v]   # 只输出统计，不改动原图
 pnpm test
 ```
