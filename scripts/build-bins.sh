@@ -34,7 +34,10 @@ if [[ $PART != native ]]; then
   # Windows 静态链接 C 运行时，避免依赖 vcruntime
   [[ $OS == win ]] && export RUSTFLAGS="-C target-feature=+crt-static"
   [[ $OS == mac ]] && export MACOSX_DEPLOYMENT_TARGET=12.0
-  retry cargo install --locked --root "$OUT" "pngquant@$PNGQUANT" "oxipng@$OXIPNG"
+  # static：不链接 CI 机器上 Homebrew 的 lcms2/libpng，否则用户机器上无法运行
+  # 不加 --locked：锁定的旧版 libpng-sys 在新版 macOS SDK 上编译失败
+  retry cargo install --root "$OUT" "pngquant@$PNGQUANT" --features static
+  retry cargo install --locked --root "$OUT" "oxipng@$OXIPNG"
   retry cargo install --locked --root "$OUT" "ssimulacra2_rs@$SSIMULACRA2" --no-default-features
   rm -f "$OUT/.crates.toml" "$OUT/.crates2.json"
   CH=${CARGO_HOME:-$HOME/.cargo}
@@ -101,4 +104,11 @@ cp "libavif/build/avifenc$EXE" "$BIN/"
 lic libavif libavif/LICENSE
 lic aom libavif/ext/aom/LICENSE libavif/ext/aom/PATENTS
 
+# 只允许依赖系统库，避免在用户机器上缺库
+if [[ $OS == mac ]]; then
+  for f in "$BIN"/*; do
+    bad=$(otool -L "$f" | tail -n +2 | awk '{print $1}' | grep -vE '^(/usr/lib/|/System/)' || true)
+    [[ -z $bad ]] || { echo "$f 依赖非系统库：$bad" >&2; exit 1; }
+  done
+fi
 ls -l "$BIN"
