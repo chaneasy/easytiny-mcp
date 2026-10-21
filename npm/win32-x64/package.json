@@ -1,5 +1,5 @@
 {
-  "name": "easytiny-mcp-win32-x64",
+  "name": "@easychan/easytiny-mcp-win32-x64",
   "version": "0.0.0",
   "description": "easytiny-mcp 的 Windows x64 编码器",
   "repository": {

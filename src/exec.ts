@@ -9,11 +9,14 @@ const execFileAsync = promisify(execFile)
 const exe = process.platform === 'win32' ? '.exe' : ''
 // 本地编译的编码器（src/ 与 dist/ 都在项目根目录下一层）
 const vendorDir = fileURLToPath(new URL('../vendor/bin', import.meta.url))
-// npm 安装时随 optionalDependencies 装上的当前平台编码器包
+// npm 安装时随 optionalDependencies 装上的当前平台编码器包（Windows 包因 npm 反垃圾检测改用作用域名）
 const pkgDir = (() => {
-  try {
-    return join(dirname(createRequire(import.meta.url).resolve(`easytiny-mcp-${process.platform}-${process.arch}/package.json`)), 'bin')
-  } catch {}
+  const name = `easytiny-mcp-${process.platform}-${process.arch}`
+  for (const pkg of [name, `@easychan/${name}`]) {
+    try {
+      return join(dirname(createRequire(import.meta.url).resolve(`${pkg}/package.json`)), 'bin')
+    } catch {}
+  }
 })()
 // mozjpeg、jpeg-xl 在 Homebrew 中是 keg-only，优先于 PATH 中 libjpeg-turbo 的同名工具
 const kegDirs = ['mozjpeg', 'jpeg-xl'].flatMap((f) => [`/opt/homebrew/opt/${f}/bin`, `/usr/local/opt/${f}/bin`])

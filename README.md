@@ -55,7 +55,7 @@ claude mcp add --scope user easytiny -- npx -y easytiny-mcp
 
 ## 发布
 
-推送 `v*` tag 后，GitHub Actions 会在各平台编译编码器、跑测试，并发布主包 `easytiny-mcp` 与平台包 `easytiny-mcp-<平台>`：
+推送 `v*` tag 后，GitHub Actions 会在各平台编译编码器、跑测试，并发布主包 `easytiny-mcp` 与平台包 `easytiny-mcp-darwin-arm64`、`easytiny-mcp-darwin-x64`、`@easychan/easytiny-mcp-win32-x64`：
 
 ```bash
 git tag v0.1.0 && git push origin v0.1.0
