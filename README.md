@@ -7,8 +7,20 @@
 | 工具 | 作用 |
 |---|---|
 | `prepare_compression` | 压缩到临时目录，返回 `plan_id` 和预览表（原大小、新大小、编码器、SSIMULACRA2 分数、跳过原因） |
-| `apply_compression` | 用户确认后原子替换原图；客户端支持 elicitation 时由服务端直接向用户确认，可选 `backup` |
+| `apply_compression` | 用户在聊天中确认后，传入 `plan_id` 和必填的 `confirmed: true` 原子替换原图，不再发起额外确认表单，可选 `backup` |
 | `cancel_compression` | 丢弃预览结果 |
+
+## 确认与替换流程
+
+1. 调用 `prepare_compression`，将返回的预览表完整展示给用户，原图保持不变。
+2. 用户在聊天中明确同意替换该计划后，调用 `apply_compression({ plan_id, confirmed: true })`；需要备份时额外传入 `backup: true`。
+3. 服务端校验确认参数和计划，再检查原图是否发生变化并执行替换。无论客户端是否支持 elicitation，都不会再次请求确认表单。
+
+`confirmed` 无默认值：省略、传 `false` 或传字符串 `"true"` 都不会替换文件，计划仍可在有效期内重新提交。计划有效期为 30 分钟，失效或服务重启后需要重新生成预览并获得确认。
+
+此参数是调用方对已有用户授权的明确声明；服务端能校验参数，不能直接读取或验证聊天内容。调用方必须确认授权对应当前 `plan_id`，不得自行填 `true`。客户端自身的工具审批策略仍然生效。
+
+升级时，原先只传 `{ plan_id }` 的调用及工作流说明需同步增加 `confirmed: true`（仅在用户已同意后）。已运行的 MCP 服务需重启或重新连接以加载新的工具定义；固定使用 npm 旧版本的配置不会自动使用本地修改。
 
 ## 压缩策略
 
@@ -58,7 +70,7 @@ claude mcp add --scope user easytiny -- npx -y easytiny-mcp
 推送 `v*` tag 后，GitHub Actions 会在各平台编译编码器、跑测试，并发布主包 `easytiny-mcp` 与平台包 `easytiny-mcp-darwin-arm64`、`easytiny-mcp-darwin-x64`、`@easychan/easytiny-mcp-win32-x64`：
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
+git tag v0.2.0 && git push origin v0.2.0
 ```
 
 npm 认证使用 Trusted Publishing（OIDC），无需长期 token：

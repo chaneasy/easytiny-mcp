@@ -29,7 +29,7 @@ function report(plan: Plan): string {
   ].join('\n')
 }
 
-const server = new McpServer({ name: 'easytiny-mcp', version: '0.1.0' })
+const server = new McpServer({ name: 'easytiny-mcp', version: '0.2.0' })
 
 server.registerTool(
   'prepare_compression',
@@ -37,7 +37,7 @@ server.registerTool(
     title: '预览图片压缩',
     description:
       '视觉无损压缩图片（JPEG/PNG/WebP/AVIF/GIF/SVG），结果存放在临时目录，不修改原图。' +
-      '返回 plan_id 和预览表。必须把预览表完整展示给用户，并在用户明确同意后才能调用 apply_compression。',
+      '返回 plan_id 和预览表。必须把预览表完整展示给用户，并在用户明确同意替换该计划后，才能调用 apply_compression 并传入 confirmed: true。',
     inputSchema: {
       paths: z.array(z.string()).min(1).describe('图片文件或目录路径，建议使用绝对路径'),
       recursive: z.boolean().default(defaults.recursive).describe('是否递归子目录'),
@@ -63,29 +63,21 @@ server.registerTool(
   'apply_compression',
   {
     title: '替换原图',
-    description: '用 prepare_compression 的结果替换原图。只能在用户看过预览表并明确同意后调用。',
+    description:
+      '用 prepare_compression 的结果替换原图。只能在用户看过该 plan_id 的预览表并在聊天中明确同意替换后调用，' +
+      '将已有授权通过 confirmed: true 传入；不得自行推断授权。服务端校验确认参数，不再发起额外确认表单。',
     inputSchema: {
       plan_id: z.string().describe('prepare_compression 返回的 plan_id'),
+      confirmed: z.boolean().describe('必填。仅在用户已看过该计划的预览表并明确同意替换后传 true；未获授权不得传 true'),
       backup: z.boolean().default(false).describe('替换前把原图备份到同目录的 .image-backup/'),
     },
     annotations: { destructiveHint: true },
   },
-  async ({ plan_id, backup }) => {
+  async ({ plan_id, confirmed, backup }) => {
+    if (confirmed !== true)
+      return { ...text('未收到该计划的明确替换授权，原图未改动。请先展示预览并获得用户同意，再传入 confirmed: true。'), isError: true }
     const plan = getPlan(plan_id)
     if (!plan) return { ...text(`计划 ${plan_id} 不存在或已过期，请重新调用 prepare_compression`), isError: true }
-    // 客户端支持 elicitation 时由服务端直接向用户确认，不依赖模型转述
-    if (server.server.getClientCapabilities()?.elicitation) {
-      const n = plan.files.filter((f) => f.status === 'ok').length
-      const res = await server.server.elicitInput({
-        message: `即将用压缩结果替换 ${n} 个原图${backup ? '（会先备份）' : '（不备份，不可撤销）'}，是否继续？`,
-        requestedSchema: {
-          type: 'object',
-          properties: { confirm: { type: 'boolean', title: '确认替换' } },
-          required: ['confirm'],
-        },
-      })
-      if (res.action !== 'accept' || res.content?.confirm !== true) return text('用户取消了替换，原图未改动')
-    }
     const { replaced, failed } = await applyPlan(plan_id, backup)
     const saved = replaced.reduce((s, f) => s + f.size - f.newSize!, 0)
     return text(

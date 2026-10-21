@@ -1,6 +1,6 @@
 {
   "name": "easytiny-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for visually lossless batch image compression",
   "keywords": [
     "mcp",
